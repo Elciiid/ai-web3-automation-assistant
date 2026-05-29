@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   Bell,
   Bot,
@@ -55,7 +55,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.28, ease: "easeOut" }}
-          className="mx-auto w-full max-w-[86rem] px-4 py-7 sm:px-6 sm:py-8 lg:px-10"
+          className="mx-auto w-full max-w-[86rem] px-4 pb-7 pt-24 sm:px-6 sm:pb-8 lg:px-10"
         >
           {children}
         </motion.main>
@@ -122,6 +122,10 @@ function Sidebar({ className, onNavigate }: { className?: string; onNavigate?: (
 }
 
 function Topbar({ onMenu }: { onMenu: () => void }) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [searchValue, setSearchValue] = useState(searchParams.get("q") ?? "");
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const notificationRef = useRef<HTMLDivElement | null>(null);
   const {
@@ -132,6 +136,10 @@ function Topbar({ onMenu }: { onMenu: () => void }) {
     markRead,
     markAllRead,
   } = useNotifications();
+
+  useEffect(() => {
+    setSearchValue(searchParams.get("q") ?? "");
+  }, [searchParams]);
 
   useEffect(() => {
     function handlePointerDown(event: MouseEvent) {
@@ -153,16 +161,41 @@ function Topbar({ onMenu }: { onMenu: () => void }) {
     };
   }, []);
 
+  function updatePageSearch(value: string) {
+    setSearchValue(value);
+    const params = new URLSearchParams(searchParams.toString());
+    if (value.trim()) {
+      params.set("q", value.trim());
+    } else {
+      params.delete("q");
+    }
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+  }
+
   return (
-    <header className="workspace-topbar sticky top-0 z-30">
+    <header className="workspace-topbar fixed left-0 right-0 top-0 z-30 lg:left-64">
       <div className="flex h-16 items-center gap-3 px-4 sm:px-6 lg:px-10">
         <button className="workspace-icon-button rounded-full p-2 lg:hidden" onClick={onMenu}>
           <Menu className="h-5 w-5" />
         </button>
-        <div className="workspace-search hidden h-10 min-w-0 flex-1 items-center gap-3 rounded-full px-4 text-sm md:flex">
+        <label className={cn(
+          "workspace-search hidden h-10 min-w-0 flex-1 items-center gap-3 rounded-full px-4 text-sm md:flex",
+          searchValue.trim() && "border-fuchsia-200/20 bg-white/[0.045] text-white/72",
+        )}>
           <Search className="h-4 w-4 text-white/42" />
-          Search wallets, hashes, rules, or ask the AI assistant
-        </div>
+          <input
+            value={searchValue}
+            onChange={(event) => updatePageSearch(event.target.value)}
+            placeholder="Search this page: wallets, hashes, rules, chains, alerts"
+            className="min-w-0 flex-1 bg-transparent text-sm text-white/72 outline-none placeholder:text-white/34"
+          />
+          {searchValue.trim() ? (
+            <span className="rounded-full border border-fuchsia-200/18 bg-fuchsia-200/8 px-2 py-0.5 text-[11px] font-semibold text-fuchsia-100">
+              Filtering
+            </span>
+          ) : null}
+        </label>
         <div className="ml-auto flex items-center gap-2.5">
           <Button variant="secondary" size="sm" className="hidden sm:inline-flex">
             <Sparkles className="h-4 w-4" />

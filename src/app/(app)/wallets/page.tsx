@@ -14,11 +14,13 @@ import { aiInsights } from "@/lib/mock-data";
 import { formatCurrency } from "@/lib/utils";
 import { useTransactions } from "@/hooks/use-transactions";
 import { useWallets } from "@/hooks/use-wallets";
+import { usePageSearch } from "@/hooks/use-page-search";
 import type { Chain, Wallet } from "@/types";
 
 const chains = ["Ethereum", "Base", "Arbitrum", "Polygon"] as const satisfies readonly Chain[];
 
 export default function WalletsPage() {
+  const pageSearch = usePageSearch();
   const [addOpen, setAddOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Wallet | null>(null);
   const [feedback, setFeedback] = useState<{ tone: "success" | "warning" | "error"; message: string } | null>(null);
@@ -42,6 +44,14 @@ export default function WalletsPage() {
     reload: reloadTransactions,
   } = useTransactions();
   const highRiskCount = wallets.filter((wallet) => wallet.risk === "high" || wallet.risk === "medium").length;
+  const matchesSearch = (...values: Array<string | number | undefined | null>) =>
+    !pageSearch || values.some((value) => String(value ?? "").toLowerCase().includes(pageSearch));
+  const visibleWallets = wallets.filter((wallet) =>
+    matchesSearch(wallet.name, wallet.address, wallet.chain, wallet.risk, wallet.tags.join(" ")),
+  );
+  const visibleTransactions = transactions.filter((transaction) =>
+    matchesSearch(transaction.asset, transaction.chain, transaction.hash, transaction.counterparty, transaction.explanation, transaction.type),
+  );
 
   return (
     <div>
@@ -51,41 +61,54 @@ export default function WalletsPage() {
         description="Account cards show balance, risk, chain, tags, and recency with AI insights attached to the wallet timeline."
       />
 
-      <section className="grid items-start gap-5 lg:grid-cols-[1fr_0.78fr]">
-        <div className="space-y-5">
-          <Card className="p-5">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <p className="text-sm text-white/44">Total monitored value</p>
-                <p className="mt-2 text-4xl font-semibold">{formatCurrency(totalBalance)}</p>
-              </div>
-              <div className="flex gap-2">
+      <div className="page-stack">
+        <Card className="p-5">
+          <div className="grid gap-5 lg:grid-cols-[1fr_auto] lg:items-end">
+            <div>
+              <p className="text-sm text-white/44">Total monitored value</p>
+              <div className="mt-2 flex flex-wrap items-end gap-3">
+                <p className="text-4xl font-semibold">{formatCurrency(totalBalance)}</p>
                 <Badge tone="green">{walletsLoading ? "Loading" : `${wallets.length} wallets`}</Badge>
                 <Badge tone="blue">{walletsLoading ? "Syncing" : `${chainCount} chains`}</Badge>
-                <Button size="sm" variant="secondary" onClick={() => setAddOpen(true)}>
-                  <Plus className="h-4 w-4" />
-                  Add wallet
-                </Button>
               </div>
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-white/46">
+                {pageSearch
+                  ? `Workspace filtered by "${pageSearch}".`
+                  : "Wallet records are real backend rows; balances and activity update after enrichment runs."}
+              </p>
             </div>
-            {feedback ? (
-              <div className={feedback.tone === "error"
-                ? "mt-4 rounded-lg border border-red-300/18 bg-red-300/8 px-4 py-3 text-sm text-red-100"
-                : feedback.tone === "warning"
-                  ? "mt-4 rounded-lg border border-yellow-300/18 bg-yellow-300/8 px-4 py-3 text-sm text-yellow-100"
-                  : "mt-4 rounded-lg border border-emerald-300/18 bg-emerald-300/8 px-4 py-3 text-sm text-emerald-100"}
-              >
-                {feedback.message}
-              </div>
-            ) : null}
-          </Card>
+            <Button size="sm" variant="secondary" onClick={() => setAddOpen(true)} className="w-fit">
+              <Plus className="h-4 w-4" />
+              Add wallet
+            </Button>
+          </div>
+          {feedback ? (
+            <div className={feedback.tone === "error"
+              ? "mt-4 rounded-lg border border-red-300/18 bg-red-300/8 px-4 py-3 text-sm text-red-100"
+              : feedback.tone === "warning"
+                ? "mt-4 rounded-lg border border-yellow-300/18 bg-yellow-300/8 px-4 py-3 text-sm text-yellow-100"
+                : "mt-4 rounded-lg border border-emerald-300/18 bg-emerald-300/8 px-4 py-3 text-sm text-emerald-100"}
+            >
+              {feedback.message}
+            </div>
+          ) : null}
+        </Card>
 
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <section className="bento-grid items-stretch xl:grid-cols-[minmax(0,1fr)_22rem] 2xl:grid-cols-[minmax(0,1fr)_24rem]">
+          <Card className="bento-panel flex h-full min-h-0 flex-col p-4">
+            <div className="sticky-panel-header flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-base font-semibold text-white">Monitored wallets</h2>
+                <p className="mt-1 text-sm text-white/44">Cards stay inside this panel so the page rhythm remains bounded.</p>
+              </div>
+              <Badge tone="green">{visibleWallets.length} shown</Badge>
+            </div>
+            <div className="bounded-scroll soft-scrollbar grid gap-4 md:grid-cols-2 2xl:grid-cols-3 [--scroll-max:42rem] flex-1">
             {walletsError ? <InlineError message={walletsError} /> : null}
             {walletsLoading ? (
               <WalletSkeletons count={3} />
-            ) : wallets.length ? (
-              wallets.map((wallet) => (
+            ) : visibleWallets.length ? (
+              visibleWallets.map((wallet) => (
                 <WalletAccountCard
                   key={wallet.id}
                   wallet={wallet}
@@ -114,52 +137,55 @@ export default function WalletsPage() {
                 No backend wallets found. New Supabase users receive demo wallets after sign-up seeding.
               </div>
             )}
-          </div>
-        </div>
-
-        <Card className="h-fit">
-          <CardHeader>
-            <div>
-              <CardTitle>AI wallet insights</CardTitle>
-              <p className="mt-1 text-sm text-white/46">Contextual analyst notes for monitored accounts.</p>
             </div>
-            <Brain className="h-5 w-5 text-fuchsia-100" />
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {aiInsights.map((insight) => (
-              <div key={insight.id} className="raised-row rounded-lg p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <p className="text-sm font-semibold">{insight.title}</p>
-                  <Badge tone={insight.tone === "watch" ? "yellow" : "green"}>{insight.confidence}%</Badge>
+          </Card>
+
+          <div className="bento-stack flex h-full flex-col gap-4">
+            <Card className="bento-panel flex flex-1 flex-col">
+              <CardHeader className="px-5">
+                <div>
+                  <CardTitle>AI wallet insights</CardTitle>
+                  <p className="mt-1 text-sm text-white/46">Contextual analyst notes for monitored accounts.</p>
                 </div>
-                <p className="mt-2 text-xs leading-5 text-white/50">{insight.summary}</p>
+                <Brain className="h-5 w-5 text-fuchsia-100" />
+              </CardHeader>
+              <CardContent className="flex flex-1 flex-col px-5 min-h-0">
+                <div className="bounded-scroll soft-scrollbar grid gap-3 [--scroll-max:28rem] flex-1">
+                  {aiInsights.map((insight) => (
+                    <div key={insight.id} className="raised-row w-full rounded-lg p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <p className="text-sm font-semibold">{insight.title}</p>
+                        <Badge tone={insight.tone === "watch" ? "yellow" : "green"}>{insight.confidence}%</Badge>
+                      </div>
+                      <p className="mt-2 text-xs leading-5 text-white/50">{insight.summary}</p>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bento-panel p-5">
+              <div className="flex items-center gap-3">
+                <div className="grid h-10 w-10 place-items-center rounded-lg border border-emerald-300/20 bg-emerald-300/10">
+                  <ShieldCheck className="h-5 w-5 text-emerald-200" />
+                </div>
+                <div>
+                  <h2 className="font-semibold">Risk posture</h2>
+                  <p className="text-sm text-white/44">
+                    {walletsLoading ? "Loading account posture" : `${highRiskCount} wallet${highRiskCount === 1 ? "" : "s"} need attention`}
+                  </p>
+                </div>
               </div>
-            ))}
-          </CardContent>
-        </Card>
-      </section>
-
-      <section className="mt-5 grid items-start gap-5 xl:grid-cols-[0.72fr_1.28fr]">
-        <Card className="h-fit p-5">
-          <div className="flex items-center gap-3">
-            <div className="grid h-10 w-10 place-items-center rounded-lg border border-emerald-300/20 bg-emerald-300/10">
-              <ShieldCheck className="h-5 w-5 text-emerald-200" />
-            </div>
-            <div>
-              <h2 className="font-semibold">Risk posture</h2>
-              <p className="text-sm text-white/44">
-                {walletsLoading ? "Loading account posture" : `${highRiskCount} wallet${highRiskCount === 1 ? "" : "s"} need attention`}
-              </p>
-            </div>
+              <div className="mt-5 space-y-3">
+                {["Approval review enabled", "High-value transfers watched", "Known counterparties mapped"].map((item) => (
+                  <div key={item} className="raised-row rounded-lg p-3 text-sm text-white/66">{item}</div>
+                ))}
+              </div>
+            </Card>
           </div>
-          <div className="mt-5 space-y-3">
-            {["Approval review enabled", "High-value transfers watched", "Known counterparties mapped"].map((item) => (
-              <div key={item} className="raised-row rounded-lg p-3 text-sm text-white/66">{item}</div>
-            ))}
-          </div>
-        </Card>
+        </section>
 
-        <Card>
+        <Card className="bento-panel">
           <CardHeader>
             <div>
               <CardTitle>Wallet activity timeline</CardTitle>
@@ -167,26 +193,28 @@ export default function WalletsPage() {
             </div>
             <Clock3 className="h-5 w-5 text-fuchsia-100" />
           </CardHeader>
-          <CardContent className="space-y-3">
-            {transactionsError ? <InlineError message={transactionsError} /> : null}
-            {transactionsLoading ? (
-              <TransactionSkeletons count={4} />
-            ) : transactions.length ? (
-              transactions.map((transaction) => (
-                <TransactionActivityRow
-                  key={transaction.id}
-                  transaction={transaction}
-                  wallet={wallets.find((wallet) => wallet.id === transaction.walletId)}
-                />
-              ))
-            ) : (
-              <div className="raised-row rounded-lg p-5 text-sm text-white/50">
-                No recent transfers found yet. Refresh a wallet to ask Alchemy for recent blockchain activity.
-              </div>
-            )}
+          <CardContent>
+            <div className="bounded-scroll soft-scrollbar space-y-3 [--scroll-max:34rem]">
+              {transactionsError ? <InlineError message={transactionsError} /> : null}
+              {transactionsLoading ? (
+                <TransactionSkeletons count={4} />
+              ) : visibleTransactions.length ? (
+                visibleTransactions.map((transaction) => (
+                  <TransactionActivityRow
+                    key={transaction.id}
+                    transaction={transaction}
+                    wallet={wallets.find((wallet) => wallet.id === transaction.walletId)}
+                  />
+                ))
+              ) : (
+                <div className="raised-row rounded-lg p-5 text-sm text-white/50">
+                  No recent transfers found yet. Refresh a wallet to ask Alchemy for recent blockchain activity.
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
-      </section>
+      </div>
       <AddWalletDialog
         open={addOpen}
         saving={saving}

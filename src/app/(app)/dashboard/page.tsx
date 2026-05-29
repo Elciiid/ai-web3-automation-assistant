@@ -15,10 +15,12 @@ import { useAutomations } from "@/hooks/use-automations";
 import { useNotifications } from "@/hooks/use-notifications";
 import { useTransactions } from "@/hooks/use-transactions";
 import { useWallets } from "@/hooks/use-wallets";
+import { usePageSearch } from "@/hooks/use-page-search";
 import { formatCurrency } from "@/lib/utils";
 import type { DashboardMetric } from "@/types";
 
 export default function DashboardPage() {
+  const pageSearch = usePageSearch();
   const {
     rules,
     loading: automationsLoading,
@@ -74,6 +76,20 @@ export default function DashboardPage() {
       icon: ShieldCheck,
     },
   ];
+  const matchesSearch = (...values: Array<string | number | undefined | null>) =>
+    !pageSearch || values.some((value) => String(value ?? "").toLowerCase().includes(pageSearch));
+  const visibleRules = rules.filter((rule) =>
+    matchesSearch(rule.name, rule.description, rule.prompt, rule.walletScope, rule.condition.value, rule.status),
+  );
+  const visibleTransactions = transactions.filter((transaction) =>
+    matchesSearch(transaction.asset, transaction.chain, transaction.hash, transaction.counterparty, transaction.explanation, transaction.type),
+  );
+  const visibleNotifications = notifications.filter((notification) =>
+    matchesSearch(notification.title, notification.description, notification.source, notification.walletIdentity),
+  );
+  const visibleWallets = wallets.filter((wallet) =>
+    matchesSearch(wallet.name, wallet.address, wallet.chain, wallet.risk, wallet.tags.join(" ")),
+  );
 
   return (
     <div>
@@ -85,31 +101,33 @@ export default function DashboardPage() {
 
       <DemoReadinessPanel />
 
-      <div className="mt-8">
-      <AiCommandCenter hero onSaveAutomation={createRule} />
+      <div className="mt-6">
+        <AiCommandCenter hero onSaveAutomation={createRule} />
       </div>
 
-      <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {metrics.map((metric) => (
           <MetricCard key={metric.label} metric={metric} />
         ))}
       </div>
 
-      <section className="mt-8 grid items-start gap-6 xl:grid-cols-[1fr_0.92fr]">
-        <div>
+      <section className="bento-grid mt-6 xl:grid-cols-[1fr_0.92fr]">
+        <Card className="bento-panel flex min-h-0 flex-col p-5">
           <div className="mb-4 flex items-center justify-between gap-4">
             <div>
               <h2 className="text-xl font-semibold text-white">Active automations</h2>
-              <p className="mt-1 text-sm text-white/44">Saved rules from the AI command center appear here immediately.</p>
+              <p className="mt-1 text-sm panel-muted">
+                {pageSearch ? `Filtered by "${pageSearch}".` : "Saved rules from the AI command center appear here immediately."}
+              </p>
             </div>
             <Badge tone="green">{rules.filter((rule) => rule.status === "active").length} active</Badge>
           </div>
           {automationsError ? <InlineError message={automationsError} /> : null}
-          <div className="grid gap-5">
+          <div className="bounded-scroll soft-scrollbar grid gap-4 [--scroll-max:42rem]">
             {automationsLoading ? (
               <RuleSkeletons count={3} />
             ) : rules.length ? (
-              rules.slice(0, 3).map((rule) => (
+              visibleRules.slice(0, 3).map((rule) => (
                 <AutomationRuleCard
                   key={rule.id}
                   rule={rule}
@@ -123,23 +141,23 @@ export default function DashboardPage() {
               </div>
             )}
           </div>
-        </div>
+        </Card>
 
-        <div className="space-y-6">
-          <Card className="h-fit">
+        <div className="bento-stack">
+          <Card className="bento-panel h-fit">
             <CardHeader>
               <div>
                 <CardTitle>Priority activity</CardTitle>
-                <p className="mt-1 text-sm text-white/46">Polished crypto rows with AI context.</p>
+                <p className="mt-1 text-sm panel-muted">Polished crypto rows with AI context.</p>
               </div>
               <ShieldCheck className="h-5 w-5 text-fuchsia-100" />
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="bounded-scroll soft-scrollbar space-y-3 [--scroll-max:28rem]">
               {transactionsError ? <InlineError message={transactionsError} /> : null}
               {transactionsLoading ? (
                 <TransactionSkeletons count={3} />
-              ) : transactions.length ? (
-                transactions.slice(0, 3).map((transaction) => (
+              ) : visibleTransactions.length ? (
+                visibleTransactions.slice(0, 6).map((transaction) => (
                   <TransactionActivityRow
                     key={transaction.id}
                     transaction={transaction}
@@ -154,17 +172,17 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          <Card className="h-fit">
+          <Card className="bento-panel h-fit">
             <CardHeader>
               <CardTitle>Signal feed</CardTitle>
               <Bell className="h-5 w-5 text-fuchsia-100" />
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="bounded-scroll soft-scrollbar space-y-3 [--scroll-max:28rem]">
               {notificationsError ? <InlineError message={notificationsError} /> : null}
               {notificationsLoading ? (
                 <SignalSkeletons count={3} />
-              ) : notifications.length ? (
-                notifications.slice(0, 4).map((notification) => (
+              ) : visibleNotifications.length ? (
+                visibleNotifications.slice(0, 8).map((notification) => (
                   <div key={notification.id} className="raised-row rounded-lg p-4">
                     <div className="flex items-start justify-between gap-4">
                       <div>
@@ -192,19 +210,19 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      <section className="mt-8">
+      <section className="mt-6">
         <div className="mb-4 flex items-end justify-between gap-4">
           <div>
             <h2 className="text-xl font-semibold text-white">Monitored accounts</h2>
-            <p className="mt-1 text-sm text-white/44">Web3 account cards for the wallets powering the automation layer.</p>
+            <p className="mt-1 text-sm panel-muted">Web3 account cards for the wallets powering the automation layer.</p>
           </div>
         </div>
         {walletsError ? <InlineError message={walletsError} /> : null}
-        <div className="grid gap-5 lg:grid-cols-3">
+        <div className="bounded-scroll soft-scrollbar grid gap-5 lg:grid-cols-3 [--scroll-max:38rem]">
           {walletsLoading ? (
             <WalletSkeletons count={3} />
-          ) : wallets.length ? (
-            wallets.map((wallet) => (
+          ) : visibleWallets.length ? (
+            visibleWallets.map((wallet) => (
               <WalletAccountCard key={wallet.id} wallet={wallet} />
             ))
           ) : (

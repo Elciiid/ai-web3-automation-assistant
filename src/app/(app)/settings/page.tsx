@@ -39,8 +39,8 @@ export default function SettingsPage() {
         title="Workspace controls"
         description="Workspace configuration, notification channels, monitored chains, and controlled demo operations."
       />
-      <div className="grid gap-5 lg:grid-cols-[0.82fr_1.18fr]">
-        <Card className="p-5">
+      <div className="bento-grid items-start lg:grid-cols-[0.74fr_1.26fr]">
+        <Card className="self-start p-5">
           <div className="flex items-center gap-3">
             <div className="grid h-12 w-12 place-items-center rounded-lg bg-white text-sm font-bold text-black">
               AW
@@ -50,19 +50,19 @@ export default function SettingsPage() {
               <p className="text-sm text-white/46">operator@aperture.xyz</p>
             </div>
           </div>
-          <div className="mt-6 space-y-3">
+          <div className="mt-5 space-y-3">
             <Input defaultValue="Aperture Labs" />
             <Input defaultValue="operator@aperture.xyz" />
           </div>
         </Card>
-        <div className="grid gap-5 md:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-2">
           <SettingsPanel icon={Bell} title="Notification channels" items={["In-app alerts", "Slack workspace", "Telegram bot", "Email digest"]} />
           <SettingsPanel icon={Shield} title="Monitored chains" items={["Ethereum", "Base", "Arbitrum", "Polygon"]} />
           <SettingsPanel icon={SlidersHorizontal} title="Risk thresholds" items={["Flag new approvals", "Watch transfers over $1,000", "Require review over $50,000"]} />
           <SettingsPanel icon={KeyRound} title="Developer access" items={["Demo API key", "Webhook signing", "Audit export"]} />
         </div>
       </div>
-      <Card className="mt-5 p-5">
+      <Card className="bento-panel mt-5 p-5">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="max-w-2xl">
             <div className="flex items-center gap-3">
@@ -108,7 +108,7 @@ export default function SettingsPage() {
                   {demoRun.skippedWallets} skipped / signed-in user only / {demoRun.mode}
                 </span>
               </div>
-              <div className="mt-4 grid gap-2 md:grid-cols-2">
+              <div className="bounded-scroll soft-scrollbar mt-4 grid gap-2 md:grid-cols-2 [--scroll-max:18rem]">
                 {demoRun.results.slice(0, 4).map((result) => (
                   <div key={result.walletId} className="glass-subtle rounded-lg p-3">
                     <div className="flex items-center justify-between gap-3">

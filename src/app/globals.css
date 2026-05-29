@@ -163,6 +163,14 @@ body {
   backdrop-filter: blur(18px) saturate(120%);
 }
 
+.panel-pad {
+  padding: 1.25rem;
+}
+
+.panel-muted {
+  color: rgba(255, 255, 255, 0.52);
+}
+
 .raised-row {
   border: 1px solid rgba(255, 255, 255, 0.075);
   background: rgba(255, 255, 255, 0.032);
@@ -170,12 +178,15 @@ body {
 }
 
 .interactive-row {
-  transition: border-color 160ms ease, background 160ms ease;
+  transition: border-color 160ms ease, background 160ms ease, box-shadow 160ms ease, transform 160ms ease;
 }
 
 .interactive-row:hover {
   border-color: rgba(255, 255, 255, 0.13);
   background: rgba(255, 255, 255, 0.048);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 10px 28px rgba(0, 0, 0, 0.18);
 }
 
 .command-center-shell {
@@ -228,4 +239,44 @@ body {
 .soft-scrollbar::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.2);
   border-radius: 999px;
+}
+
+.bento-grid {
+  display: grid;
+  gap: 1rem;
+  align-items: start;
+}
+
+.bento-panel {
+  min-height: 0;
+}
+
+.bento-stack {
+  display: grid;
+  gap: 1rem;
+  align-content: start;
+}
+
+.page-stack {
+  display: grid;
+  gap: 1rem;
+}
+
+.bounded-scroll {
+  max-height: var(--scroll-max, 32rem);
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 0.2rem;
+  scroll-behavior: smooth;
+}
+
+.sticky-panel-header {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  margin: -0.1rem -0.1rem 0.75rem;
+  padding: 0.1rem;
+  background: linear-gradient(180deg, rgba(29, 29, 33, 0.96), rgba(29, 29, 33, 0.82));
+  backdrop-filter: blur(14px);
 }

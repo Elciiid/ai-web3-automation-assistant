@@ -11,8 +11,12 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { formatCurrency, shortenAddress } from "@/lib/utils";
 import { useTransactions } from "@/hooks/use-transactions";
 import { useWallets } from "@/hooks/use-wallets";
+import { usePageSearch } from "@/hooks/use-page-search";
+import { useState } from "react";
 
 export default function TransactionsPage() {
+  const pageSearch = usePageSearch();
+  const [density, setDensity] = useState<"comfortable" | "compact">("comfortable");
   const {
     transactions,
     loading: transactionsLoading,
@@ -32,6 +36,22 @@ export default function TransactionsPage() {
   const selectedWallet = selectedTransaction
     ? wallets.find((wallet) => wallet.id === selectedTransaction.walletId)
     : undefined;
+  const matchesSearch = (...values: Array<string | number | undefined | null>) =>
+    !pageSearch || values.some((value) => String(value ?? "").toLowerCase().includes(pageSearch));
+  const visibleTransactions = transactions.filter((transaction) => {
+    const wallet = wallets.find((candidate) => candidate.id === transaction.walletId);
+    return matchesSearch(
+      transaction.asset,
+      transaction.chain,
+      transaction.hash,
+      transaction.counterparty,
+      transaction.explanation,
+      transaction.type,
+      transaction.status,
+      wallet?.name,
+      wallet?.address,
+    );
+  });
 
   return (
     <div>
@@ -55,22 +75,40 @@ export default function TransactionsPage() {
         ))}
       </div>
 
-      <Card className="p-4">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+      <Card className="bento-panel p-4">
+        <div className="sticky-panel-header flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap gap-2">
             <Badge tone="pink">All activity</Badge>
             <Badge tone="blue">AI explained</Badge>
             <Badge>Supabase API</Badge>
           </div>
-          <p className="text-sm text-white/44">Click a row to inspect the explanation drawer.</p>
+          <div className="flex items-center gap-3">
+            <p className="text-sm text-white/44">
+              {pageSearch ? `Filtered by "${pageSearch}".` : "Click a row to inspect the explanation drawer."}
+            </p>
+            <div className="flex rounded-full border border-white/10 bg-white/[0.035] p-1">
+              {(["comfortable", "compact"] as const).map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => setDensity(option)}
+                  className={`rounded-full px-3 py-1.5 text-xs font-semibold capitalize transition ${
+                    density === option ? "bg-white/12 text-white" : "text-white/46 hover:text-white/76"
+                  }`}
+                >
+                  {option}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
         {transactionsError ? <InlineError message={transactionsError} /> : null}
         {walletsError ? <InlineError message={walletsError} /> : null}
-        <div className="space-y-3">
+        <div className={`bounded-scroll soft-scrollbar [--scroll-max:42rem] ${density === "compact" ? "space-y-2" : "space-y-3"}`}>
           {transactionsLoading || walletsLoading ? (
             <TransactionSkeletons count={4} />
-          ) : transactions.length ? (
-            transactions.map((transaction) => (
+          ) : visibleTransactions.length ? (
+            visibleTransactions.map((transaction) => (
               <TransactionActivityRow
                 key={transaction.id}
                 transaction={transaction}
@@ -105,7 +143,7 @@ export default function TransactionsPage() {
               initial={{ x: 36, opacity: 0.88 }}
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: 24, opacity: 0 }}
-              transition={{ duration: 0.22, ease: "easeOut" }}
+              transition={{ type: "spring", stiffness: 260, damping: 30, mass: 0.8 }}
             >
             <div className="flex items-start justify-between gap-4">
               <div>

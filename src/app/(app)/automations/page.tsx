@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input, Textarea } from "@/components/ui/input";
 import { useAutomations } from "@/hooks/use-automations";
+import { usePageSearch } from "@/hooks/use-page-search";
 import type { AutomationRule } from "@/types";
 
 type RuleDraft = Omit<AutomationRule, "id" | "triggerCount" | "lastTriggered">;
@@ -33,6 +34,7 @@ const emptyRule: RuleDraft = {
 };
 
 export default function AutomationsPage() {
+  const pageSearch = usePageSearch();
   const {
     rules,
     loading,
@@ -45,6 +47,12 @@ export default function AutomationsPage() {
   } = useAutomations();
   const [editing, setEditing] = useState<AutomationRule | null>(null);
   const [creating, setCreating] = useState(false);
+  const [density, setDensity] = useState<"comfortable" | "compact">("comfortable");
+  const matchesSearch = (...values: Array<string | number | undefined | null>) =>
+    !pageSearch || values.some((value) => String(value ?? "").toLowerCase().includes(pageSearch));
+  const visibleRules = rules.filter((rule) =>
+    matchesSearch(rule.name, rule.description, rule.prompt, rule.walletScope, rule.status, rule.condition.value, rule.action.message),
+  );
 
   return (
     <div>
@@ -76,14 +84,39 @@ export default function AutomationsPage() {
 
       {error ? <InlineError message={error} /> : null}
 
+      <div className="panel-surface rounded-lg p-4">
+        <div className="sticky-panel-header flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-base font-semibold text-white">Rule workspace</h2>
+            <p className="mt-1 text-sm text-white/44">
+              {pageSearch ? `Showing rules matching "${pageSearch}".` : "Bounded automation list with local density controls."}
+            </p>
+          </div>
+          <div className="flex rounded-full border border-white/10 bg-white/[0.035] p-1">
+            {(["comfortable", "compact"] as const).map((option) => (
+              <button
+                key={option}
+                type="button"
+                onClick={() => setDensity(option)}
+                className={`rounded-full px-3 py-1.5 text-xs font-semibold capitalize transition ${
+                  density === option ? "bg-white/12 text-white" : "text-white/46 hover:text-white/76"
+                }`}
+              >
+                {option}
+              </button>
+            ))}
+          </div>
+        </div>
+
       {loading ? (
         <AutomationSkeletons count={4} />
-      ) : rules.length ? (
-        <div className="grid gap-4 xl:grid-cols-2">
-          {rules.map((rule) => (
+      ) : visibleRules.length ? (
+        <div className="bounded-scroll soft-scrollbar grid gap-4 xl:grid-cols-2 [--scroll-max:42rem]">
+          {visibleRules.map((rule) => (
             <AutomationRuleCard
               key={rule.id}
               rule={rule}
+              compact={density === "compact"}
               onToggle={() => toggleRule(rule.id)}
               onEdit={() => setEditing(rule)}
               onDelete={() => deleteRule(rule.id)}
@@ -98,6 +131,7 @@ export default function AutomationsPage() {
           onAction={() => setCreating(true)}
         />
       )}
+      </div>
 
       <RuleDialog
         open={creating}

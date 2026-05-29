@@ -1,6 +1,7 @@
 "use client";
 
 import { Bell, Edit3, Pause, Play, Trash2, Wallet2 } from "lucide-react";
+import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -21,7 +22,8 @@ export function AutomationRuleCard({
   compact?: boolean;
 }) {
   return (
-    <Card className="group overflow-hidden">
+    <motion.div layout transition={{ duration: 0.2, ease: "easeOut" }}>
+    <Card className="group interactive-row overflow-hidden">
       <div className="border-b border-white/8 bg-white/[0.026] px-5 py-4">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
@@ -41,7 +43,15 @@ export function AutomationRuleCard({
             disabled={!onToggle}
             aria-label={rule.status === "active" ? "Pause rule" : "Activate rule"}
           >
-            {rule.status === "active" ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+            <motion.span
+              key={rule.status}
+              initial={{ opacity: 0, rotate: -8 }}
+              animate={{ opacity: 1, rotate: 0 }}
+              transition={{ duration: 0.16, ease: "easeOut" }}
+              className="block"
+            >
+              {rule.status === "active" ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+            </motion.span>
           </button>
         </div>
       </div>
@@ -79,6 +89,7 @@ export function AutomationRuleCard({
         ) : null}
       </div>
     </Card>
+    </motion.div>
   );
 }
 
