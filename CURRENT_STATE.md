@@ -65,7 +65,7 @@ Update this file after every major Codex session.
 - Scheduled monitoring architecture has been added with a Vercel Cron route at `GET /api/cron/monitor-wallets`.
 - `src/services/scheduledMonitoringService.ts` orchestrates monitored wallet selection, wallet enrichment, AI summaries, automation execution, notification creation, and per-wallet failure isolation.
 - `src/lib/supabase/admin.ts` creates a server-only Supabase admin client for scheduled jobs using `SUPABASE_SERVICE_ROLE_KEY`.
-- `vercel.json` schedules `/api/cron/monitor-wallets` every 30 minutes.
+- `vercel.json` schedules `/api/cron/monitor-wallets` once daily at `0 16 * * *` so Vercel Hobby deployments pass cron validation.
 - When enabled, scheduled monitoring refreshes every monitored wallet on supported chains; it does not skip wallets because they were refreshed recently.
 - Scheduled monitoring is disabled by default with `ENABLE_SCHEDULED_MONITORING=false` and should stay disabled when not actively testing or demoing to protect limited Alchemy/Gemini usage.
 - Local `.env.local` now includes `SUPABASE_SERVICE_ROLE_KEY` and a generated `CRON_SECRET` for controlled scheduled-monitoring tests.
