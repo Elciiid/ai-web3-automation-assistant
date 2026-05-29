@@ -1,0 +1,259 @@
+# Current State
+
+Update this file after every major Codex session.
+
+## Latest Implemented Systems
+
+- Supabase packages are installed.
+- Supabase project `cghlqwwrwexmppairvux` is connected through local environment variables.
+- Supabase schema migration has been applied for:
+  - `profiles`
+  - `wallets`
+  - `automation_rules`
+  - `transactions`
+  - `notifications`
+- RLS is enabled on the new app tables.
+- App-table RLS policies have been optimized to use `(select auth.uid())` so Supabase does not re-evaluate auth functions for every row.
+- Supabase Auth is wired into the existing sign-in and sign-up screens.
+- Demo login is available with `demoaccount@gmail.com` and password `password`.
+- Protected workspace routes redirect unauthenticated users to `/sign-in`.
+- Next.js API routes exist for wallets, automations, transactions, and notifications.
+- Service-layer files exist for Supabase data access.
+- Automations now use the Supabase-backed API layer for list, create, edit, status toggle, and delete.
+- Notifications now use the Supabase-backed API layer for feed data, unread count, and read updates.
+- Wallets now use the Supabase-backed API layer for read data.
+- Wallet create/delete UI now uses the Supabase-backed wallet API.
+- Wallet enrichment now uses an Alchemy-backed service when `ALCHEMY_API_KEY` is configured.
+- Local `.env.local` now contains the provided Alchemy API key for development enrichment testing.
+- Wallet creation attempts enrichment after the Supabase row is created.
+- Wallet cards include a manual refresh action that calls the backend enrichment route.
+- Recent provider transfers are normalized and inserted into the Supabase `transactions` table.
+- Optimism has been removed from the wallet creation/settings supported-chain UI because the current Alchemy setup only covers Ethereum, Base, Arbitrum, and Polygon.
+- Wallet refresh now returns clear success, skipped, empty-transfer, and failure messages.
+- Wallet refresh writes development-only server logs with chain, wallet id, status, transfer count, and inserted count.
+- Transaction ingestion now filters existing transaction hashes per wallet before insert, preventing repeat refreshes from duplicating rows in the same wallet timeline.
+- Supabase now enforces `UNIQUE (wallet_id, hash)` on `transactions`, so duplicate transaction hashes are blocked per wallet timeline at the database level.
+- Arbitrum enrichment now uses Alchemy-supported transfer categories only.
+- Added `npm run qa:alchemy -- <chain> <wallet>` for direct manual Alchemy checks without opening the app.
+- MVP synchronous automation execution now runs after wallet refresh inserts new transactions.
+- Automation execution evaluates active transfer threshold, receive threshold, and token movement rules only.
+- Matching automation executions create in-app notification rows linked to rule, wallet, and transaction.
+- Notification deduplication is protected by a Supabase partial unique index on `automation_rule_id`, `wallet_id`, and `transaction_id`.
+- Wallet monitoring layout now separates the total monitored value summary from the wallet grid so accounts feel like independent cards instead of being trapped inside one bordered container.
+- Wallet, dashboard, and notifications page side panels now size to their own content instead of stretching to match taller neighboring columns.
+- Navbar notifications now open a compact messenger-style popover with recent alerts, unread indicators, mark-read action, loading/error/empty states, and a link to the full notifications page.
+- Enrichment now filters suspicious/scam token labels such as claim links, app domains, bracketed promos, and airdrop/reward language before wallet tags or new transactions render.
+- Existing transaction and notification reads also suppress suspicious token/promo labels so previously ingested scam-looking rows do not show in the UI.
+- The demo account has additional public wallet targets for Ethereum, Base, Arbitrum, and Polygon recruiter demos.
+- The demo account has an active `Demo Token Movement Monitor` rule so newly ingested transfer activity can create real in-app notifications during refresh demos.
+- Transactions now use the Supabase-backed API layer for list and detail reads.
+- Dashboard cards, monitored accounts, priority activity, wallet page data, transaction page data, and notification activity feed now read wallet/transaction data from backend hooks.
+- AI rule parsing now uses a backend route and parser service for structured intent extraction.
+- Transaction intelligence is implemented through `src/services/aiTransactionSummaryService.ts`.
+- A project OpenAI API key named `AI Web3 Automation Assistant Codex` is securely saved in local `.env.local` as `OPENAI_API_KEY`.
+- Transaction summaries use `OPENAI_TRANSACTION_SUMMARY_MODEL=gpt-4.1-nano` locally to keep testing costs low.
+- Gemini Flash is now the primary live AI provider for automation rule parsing and transaction intelligence summaries.
+- Local `.env.local` includes the provided Gemini API key as `GEMINI_API_KEY`.
+- Gemini live model settings are pinned locally to `GEMINI_RULE_PARSER_MODEL=gemini-2.5-flash-lite` and `GEMINI_TRANSACTION_SUMMARY_MODEL=gemini-2.5-flash-lite` to reduce cost and avoid the heavier Flash model's high-demand errors during testing.
+- `src/services/geminiProviderService.ts` isolates Gemini REST `generateContent` calls, structured JSON output, and model selection.
+- Wallet refresh now generates and stores concise transaction intelligence in `transactions.ai_summary` for newly inserted transactions before automation evaluation runs.
+- AI transaction intelligence uses Gemini Flash first and deterministic fallback summaries if Gemini is unavailable, quota-blocked, or returns malformed output, so wallet refresh remains stable.
+- AI transaction summary batches now use small 4-transaction chunks and validate Gemini responses by explicit batch index instead of long transaction hashes, which reduces malformed-output fallback during wallet refresh.
+- AI rule parsing now attempts Gemini structured parsing first, validates the returned schema, and falls back to deterministic parsing if Gemini fails or returns unsupported output.
+- Existing OpenAI environment variables remain in place for optional future reuse, but OpenAI is no longer the primary runtime dependency.
+- Supabase now has a `transactions_update_own_wallet` RLS policy so authenticated users can persist `ai_summary` updates for transactions that belong to their own wallets.
+- Scheduled monitoring architecture has been added with a Vercel Cron route at `GET /api/cron/monitor-wallets`.
+- `src/services/scheduledMonitoringService.ts` orchestrates monitored wallet selection, wallet enrichment, AI summaries, automation execution, notification creation, and per-wallet failure isolation.
+- `src/lib/supabase/admin.ts` creates a server-only Supabase admin client for scheduled jobs using `SUPABASE_SERVICE_ROLE_KEY`.
+- `vercel.json` schedules `/api/cron/monitor-wallets` every 30 minutes.
+- When enabled, scheduled monitoring refreshes every monitored wallet on supported chains; it does not skip wallets because they were refreshed recently.
+- Scheduled monitoring is disabled by default with `ENABLE_SCHEDULED_MONITORING=false` and should stay disabled when not actively testing or demoing to protect limited Alchemy/Gemini usage.
+- Local `.env.local` now includes `SUPABASE_SERVICE_ROLE_KEY` and a generated `CRON_SECRET` for controlled scheduled-monitoring tests.
+- Telegram channel delivery has been added through `src/services/telegramNotificationService.ts`.
+- Automation execution now keeps creating in-app notifications first, then optionally sends a compact wallet-level Telegram digest for matching automation alerts when `ENABLE_TELEGRAM_NOTIFICATIONS=true`.
+- Telegram digests use clean HTML message formatting with alert heading, wallet, chain, signal count, AI insight, top matched activity, rule names, and explorer transaction links.
+- Telegram delivery failures are logged and do not break wallet refresh, scheduled monitoring, automation execution, or in-app notification creation.
+- Local `.env.local` now includes Telegram bot credentials for `UnitFlowSentinel_Bot` and channel chat id `@unitflowalerts`; Telegram delivery remains disabled with `ENABLE_TELEGRAM_NOTIFICATIONS=false`.
+- A non-posting Telegram API check confirmed the bot token is valid and `@unitflowalerts` resolves to the `UnitFlow Alerts` channel.
+- A controlled Telegram `sendMessage` smoke test posted successfully to `UnitFlow Alerts` with message id `2`.
+- Telegram dry run initially sent one message per automation notification and hit Telegram `429` rate limits on part of the batch.
+- Telegram delivery was refactored to send one compact digest per wallet refresh instead of one message per matched transaction.
+- Compact Telegram dry run on May 28, 2026 scanned/refreshed 11 wallets, inserted 27 transactions, created 26 in-app automation notifications, and delivered 3 Telegram digest messages covering 26 signals.
+- Telegram digest formatting was refactored into `src/services/telegramDigestFormatter.ts` so aggregation/intelligence is separate from Telegram transport.
+- Telegram digests are now intelligence-centric: they aggregate transfer count, unique asset count, dominant token, dominant direction, largest trusted movement, severity, low-trust suppression, and concise batch insight.
+- Telegram digests suppress scam/junk/low-trust token details from visible sections and collapse them into a suppression count.
+- Telegram severity is deterministic: routine activity, significant movement, or high-volume transfer based on transfer count, stablecoin size, noisy activity, and largest movement.
+
+## Active Problems
+
+- Existing Optimism rows can still be read if present, but manual enrichment is not configured for Optimism in this local setup.
+- Wallet risk and 24h change are still simplified placeholder values.
+- Gemini live parsing is connected, but supported intents remain intentionally limited to transfer thresholds, receive thresholds, token movement, and daily summaries.
+- Scheduled monitoring exists as a lightweight cron-compatible route, but it is intentionally disabled locally unless a controlled test/demo is running.
+- Telegram delivery is implemented for automation-triggered digests, but it is intentionally disabled locally unless a controlled test/demo is running.
+- Gemini summaries are generated only for newly inserted transactions; existing rows keep their current summaries unless a backfill tool is added later.
+- The OpenAI API key remains configured but is no longer used as the primary runtime provider because that project returned `429 quota exceeded` during smoke testing.
+- Telegram delivery is currently channel-only; Slack, email, webhook delivery, retry queues, and delivery analytics are not implemented.
+- The shared Supabase project contains unrelated existing tables with RLS disabled. The new app tables are protected, but the broader project has security advisor warnings outside this app's schema work.
+
+## Next Recommended Step
+
+Add a small protected demo control for running one scheduled monitoring cycle from the app, with clear usage warnings and disabled-by-default behavior.
+
+## Mocked vs Real
+
+### Real
+
+- Supabase Auth foundation.
+- Protected route middleware.
+- Supabase Postgres tables.
+- RLS policies on new app tables.
+- Backend service layer.
+- API routes with authenticated access.
+- Demo data seeding for new Supabase users.
+- Automation list/create/edit/toggle/delete frontend integration.
+- Notification feed/unread/read frontend integration.
+- Wallet read frontend integration.
+- Wallet create/delete frontend integration.
+- Wallet enrichment and manual refresh frontend integration.
+- Transaction list/detail frontend integration.
+- Blockchain-derived wallet balance and recent-transfer ingestion when `ALCHEMY_API_KEY` is configured.
+- Manual Alchemy QA utility for Ethereum, Base, Arbitrum, and Polygon wallet probes.
+- Backend AI rule parsing endpoint for supported MVP automation intents.
+- MVP synchronous automation execution after transaction ingestion.
+- Blockchain-triggered in-app notifications for supported automation rules.
+- Gemini transaction summary integration is wired and env-configured.
+- Stored transaction intelligence in `transactions.ai_summary`.
+- Deterministic fallback transaction summaries persist correctly when Gemini is unavailable.
+- Vercel Cron route and scheduler orchestration code for automated wallet monitoring.
+- Full monitored-wallet scheduled refresh orchestration when scheduled monitoring is explicitly enabled.
+- Telegram Bot API delivery integration for blockchain-triggered automation alerts.
+
+### Mocked
+
+- Advanced AI wallet-level behavioral analysis. Current AI is limited to rule parsing and transaction-level summaries.
+- Live blockchain monitoring.
+- Notification delivery to Slack, email, or webhooks.
+- Wallet risk scoring and 24h change calculations.
+- Advanced wallet risk analysis and multi-transaction behavioral scoring.
+- Production-scale worker infrastructure, queues, realtime subscriptions, and external delivery systems.
+
+## Verification Status
+
+- `npm run lint` passed after wallet enrichment work.
+- `npm run build` passed after wallet enrichment work.
+- `npm run lint` passed after MVP automation execution work.
+- `npm run build` passed after MVP automation execution work.
+- `npm run lint` passed after wallet layout and spam-token filtering work.
+- `npm run build` passed after wallet layout and spam-token filtering work.
+- `npm run lint` passed after panel stretch and notification popover work.
+- `npm run build` passed after panel stretch and notification popover work.
+- `npm run lint` passed after OpenAI transaction intelligence work.
+- `npm run build` passed after OpenAI transaction intelligence work.
+- Live OpenAI smoke test returned `429 quota exceeded`, confirming the API key is present but the project currently lacks usable quota.
+- In-app refresh of `Arbitrum Active Public Account` inserted 11 transactions and created 11 automation notifications, but summaries stayed null before the missing RLS update policy was fixed.
+- Supabase migration `allow_owned_transaction_summary_updates` was applied to add the missing transaction update policy.
+- In-app refresh of `Arbitrum Uniswap Router` inserted 10 transactions, created 10 automation notifications, and persisted 10 fallback AI summaries to `transactions.ai_summary`.
+- `npm run lint` passed after scheduled monitoring work.
+- `npm run build` passed after scheduled monitoring work.
+- Local scheduled monitoring execution has not been run yet because monitoring defaults to disabled to avoid unnecessary provider usage.
+- Scheduled monitoring was adjusted to refresh all monitored supported-chain wallets when enabled; disabling the scheduler is now the main protection when not testing.
+- Controlled scheduled-monitoring test ran on May 28, 2026 with `ENABLE_SCHEDULED_MONITORING=true`, then the flag was set back to `false`.
+- Scheduled test scanned and refreshed 11 monitored wallets, with 0 skipped and 0 failed.
+- Scheduled test inserted 47 new transactions and created 39 automation notifications.
+- Supabase verification confirmed all 47 transactions inserted during the scheduled test had non-null `ai_summary` values.
+- The local production server started for the scheduled test was stopped after verification.
+- `npm run lint` passed after Telegram notification delivery work.
+- `npm run build` passed after Telegram notification delivery work.
+- Telegram `getMe` and `getChat` smoke checks passed for `UnitFlowSentinel_Bot` and `@unitflowalerts`.
+- Telegram `sendMessage` smoke test succeeded and posted message id `2` to `UnitFlow Alerts`.
+- `npm run lint` passed after compact Telegram digest work.
+- `npm run build` passed after compact Telegram digest work.
+- Compact Telegram dry run delivered digest messages with signal counts `12`, `2`, and `12`; scheduler and Telegram env flags were set back to `false` afterward, and the local production server was stopped.
+- `npm run lint` passed after intelligence-centric Telegram digest refactor.
+- `npm run build` passed after intelligence-centric Telegram digest refactor.
+- Scheduled monitoring and Telegram delivery remain disabled locally after the refactor.
+- Full unrestricted dry run on May 28, 2026 enabled scheduled monitoring and Telegram delivery, refreshed 11 wallets, inserted 30 transactions, created 30 in-app automation notifications, and delivered 3 intelligence-centric Telegram digests.
+- Telegram digest delivery logs showed successful delivery for signal groups of `6`, `12`, and `12`.
+- Supabase verification confirmed all 30 transactions inserted during the unrestricted dry run had non-null `ai_summary` values.
+- After the unrestricted dry run, `ENABLE_SCHEDULED_MONITORING=false`, `ENABLE_TELEGRAM_NOTIFICATIONS=false`, and the local production server was stopped.
+- Telegram notification experience was refactored again into a modern operational-bot style: natural wallet line, activity summary, largest movement, concise AI insight, normalized automation names, and optional key movements.
+- Placeholder automation names such as `Demo Token Movement Monitor` are now normalized in Telegram output to production-like names such as `Wallet Activity Monitor`.
+- Telegram digest output no longer shows transaction hashes by default and avoids reference-style raw blockchain dumps.
+- In-app notifications now include subtle wallet identity context using the monitored wallet label plus chain, with a truncated address fallback when needed.
+- Notification timestamps now format for Philippine time (`Asia/Manila`): very recent alerts use compact relative time, while older alerts show local PH clock time.
+- Notification amount text now uses compact token formatting such as `98.5M DESC`, `12.4K USDC`, or `1.2B PEPE` to reduce visual overload.
+- Notification wallet identity rendering is reusable through `src/components/product/notification-wallet-context.tsx` and appears in the navbar popover, dashboard signal feed, and full notifications page.
+- Telegram digest timestamps now use the inserted notification `created_at` value and render as absolute Philippine time, for example `May 28, 9:57 PM PHT`.
+- Telegram digest formatting now uses shared wallet identity, address truncation, Philippine time, and compact token amount utilities.
+- Telegram digest payloads now carry wallet label, wallet address, chain, and notification creation time from the backend execution flow instead of deriving identity/time from frontend state or transaction timestamps.
+- A protected manual demo monitoring endpoint now exists at `POST /api/demo/monitoring-run`.
+- The manual demo monitoring endpoint requires a logged-in Supabase session, runs only the authenticated user's wallets, and bypasses `ENABLE_SCHEDULED_MONITORING` without changing `.env.local`.
+- The Settings page now includes a restrained `Demo monitoring cycle` control with a `Run cycle` button, loading/error states, run summary metrics, Telegram enabled/disabled status, and per-wallet result previews.
+- After a successful in-app demo monitoring run, mounted wallet, transaction, notification, and automation data hooks now refetch automatically in the background without showing full-page loading states.
+- `src/lib/app-events.ts` centralizes the internal monitoring-completed browser event used to coordinate that automatic refetch behavior.
+- Dashboard now includes a recruiter-demo onboarding/readiness panel explaining what the app does, what to try first, what becomes real after monitoring, and which systems are connected.
+- The demo readiness panel shows a concise checklist for Auth, wallet enrichment, Gemini AI, automation execution, in-app notifications, optional Telegram, and disabled-by-default scheduling.
+- Settings demo monitoring copy now clearly says the run uses Alchemy/Gemini quota, runs only the signed-in user's monitored wallets, and creates backend records after completion.
+- `README_DEMO.md` now documents the project overview, stack, architecture, demo login, demo flow, env variables, real-vs-demo boundaries, recruiter talking points, and screenshot placeholders.
+- Modern Telegram dry run on May 28, 2026 refreshed 11 wallets, inserted 33 transactions, created 33 in-app automation notifications, and delivered 3 Telegram digests covering signal groups `12`, `12`, and `9`.
+- Supabase verification confirmed all 33 transactions inserted during the modern Telegram dry run had non-null `ai_summary` values.
+- After the modern Telegram dry run, `ENABLE_SCHEDULED_MONITORING=false`, `ENABLE_TELEGRAM_NOTIFICATIONS=false`, and the local production server was stopped.
+- `npm run lint` and `npm run build` passed after the modern Telegram digest dry run and current-state cleanup.
+- `npm run lint` passed after the in-app notification readability refinement.
+- `npm run build` passed after the in-app notification readability refinement.
+- Notification UX dry run on May 28, 2026 refreshed 11 wallets, inserted 42 transactions, created 40 in-app automation notifications, and delivered 5 Telegram digests covering signal groups `12`, `1`, `9`, `12`, and `6`.
+- Supabase verification confirmed all 42 transactions inserted during the notification UX dry run had non-null `ai_summary` values.
+- Supabase verification confirmed all 40 notifications created during the notification UX dry run had wallet context attached.
+- After the notification UX dry run, `ENABLE_SCHEDULED_MONITORING=false`, `ENABLE_TELEGRAM_NOTIFICATIONS=false`, and the local production server was stopped.
+- `npm run lint` passed after the Telegram Philippine-time fix.
+- `npm run build` passed after the Telegram Philippine-time fix.
+- Telegram Philippine-time dry run on May 28, 2026 refreshed 11 wallets, inserted 31 transactions, created 31 in-app automation notifications, and delivered 3 Telegram digests covering signal groups `12`, `7`, and `12`.
+- Supabase verification confirmed all 31 transactions inserted during the Telegram Philippine-time dry run had non-null `ai_summary` values.
+- Supabase verification confirmed all 31 notifications created during the Telegram Philippine-time dry run had wallet context attached.
+- Targeted formatter verification confirmed Telegram service files no longer contain `Just now`, `minute ago`, `minutes ago`, or Telegram-specific relative-time formatting.
+- After the Telegram Philippine-time dry run, `ENABLE_SCHEDULED_MONITORING=false`, `ENABLE_TELEGRAM_NOTIFICATIONS=false`, and the local production server was stopped.
+- Telegram key movement bullets were normalized back to valid UTF-8 after an older encoding artifact was found.
+- `npm run lint` passed after the final Telegram UTF-8 formatter cleanup.
+- `npm run build` passed after the final Telegram UTF-8 formatter cleanup.
+- Final Telegram Philippine-time dry run on May 28, 2026 refreshed 11 wallets, inserted 32 transactions, created 30 in-app automation notifications, and delivered 4 Telegram digests covering signal groups `1`, `12`, `5`, and `12`.
+- Supabase verification confirmed all 32 transactions inserted during the final Telegram Philippine-time dry run had non-null `ai_summary` values.
+- Supabase verification confirmed all 30 notifications created during the final Telegram Philippine-time dry run had wallet context attached.
+- Latest dry-run notification creation time converted to `May 28, 10:02 PM PHT`; Telegram formatter files still contain no `Just now`, `minute ago`, `minutes ago`, or Telegram-specific relative-time formatting.
+- After the final Telegram Philippine-time dry run, `ENABLE_SCHEDULED_MONITORING=false`, `ENABLE_TELEGRAM_NOTIFICATIONS=false`, and the local production server was stopped.
+- `npm run lint` passed after the protected in-app demo monitoring control.
+- `npm run build` passed after the protected in-app demo monitoring control.
+- Unauthenticated `POST /api/demo/monitoring-run` returns `401`.
+- Authenticated demo-account `POST /api/demo/monitoring-run` succeeded with `ENABLE_SCHEDULED_MONITORING=false` and `ENABLE_TELEGRAM_NOTIFICATIONS=false`: 11 wallets scanned/refreshed, 30 transactions inserted, and 29 in-app automation notifications created.
+- After the protected endpoint test, `ENABLE_SCHEDULED_MONITORING=false`, `ENABLE_TELEGRAM_NOTIFICATIONS=false`, and the local production server was stopped.
+- `npm run lint` passed after automatic post-run data refetch work.
+- `npm run build` passed after automatic post-run data refetch work.
+- `npm run qa:gemini` passed with `gemini-2.5-flash-lite` for one live structured rule parse and one live transaction-summary response.
+- Authenticated `POST /api/ai/parse-rule` passed with Gemini configured and returned a structured `transfer_amount` USDT rule.
+- Intentional bad Gemini parser model test passed: `POST /api/ai/parse-rule` still returned a valid deterministic `receive_amount` USDC rule.
+- `npm run lint` passed after Gemini provider migration.
+- `npm run build` passed after Gemini provider migration.
+- One Alchemy probe was run for `Base 0x6fF5693b99212Da76ad316178A184AB56D299b43` and returned recent transfers successfully.
+- `npm run qa:alchemy -- Ethereum 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045` passed.
+- `npm run qa:alchemy -- Base 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045` passed.
+- `npm run qa:alchemy -- Arbitrum 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045` passed.
+- `npm run qa:alchemy -- Polygon 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045` passed.
+- Supabase performance advisors no longer show app-table RLS warnings after policy optimization.
+- Supabase security advisors still show unrelated legacy-table warnings in the shared project; the AI Web3 app tables remain protected by RLS.
+- Unauthenticated `GET /api/automations` returns `401`.
+- Unauthenticated `GET /api/notifications` returns `401`.
+- Unauthenticated `GET /api/wallets` returns `401`.
+- Unauthenticated `GET /api/transactions` returns `401`.
+- Unauthenticated `/dashboard` redirects to `/sign-in?next=%2Fdashboard`.
+- Demo login `demoaccount@gmail.com` / `password` signs in successfully.
+- Browser smoke check confirmed the wallet page exposes the Add wallet dialog.
+- `npm run lint` passed after recruiter-demo hardening.
+- `npm run build` passed after recruiter-demo hardening.
+- Browser smoke check confirmed the dashboard recruiter-demo panel renders and Settings shows the quota/signed-in-user-only demo monitoring copy.
+- `npm run qa:gemini` passed after the Gemini Flash Lite chunk/index hardening.
+- `npm run lint` passed after the Gemini Flash Lite chunk/index hardening.
+- `npm run build` passed after the Gemini Flash Lite chunk/index hardening once stale local Next.js build/start processes were cleared.
+- Protected demo dry run on May 28, 2026 used `POST /api/demo/monitoring-run` with `ENABLE_SCHEDULED_MONITORING=false` and `ENABLE_TELEGRAM_NOTIFICATIONS=false`: 11 wallets scanned/refreshed, 31 transactions inserted, 31 in-app automation notifications created, and 0 failed wallets.
+- Supabase verification confirmed all 31 transactions inserted during the Gemini Flash Lite dry run had non-null `ai_summary` values.
+- Supabase verification confirmed all 31 notifications created during the Gemini Flash Lite dry run had wallet context attached.
+- After the Gemini Flash Lite dry run, `ENABLE_SCHEDULED_MONITORING=false`, `ENABLE_TELEGRAM_NOTIFICATIONS=false`, and the local production server was stopped.
