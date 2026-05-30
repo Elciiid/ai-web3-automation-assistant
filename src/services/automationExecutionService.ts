@@ -8,6 +8,7 @@ interface ExecutionInput {
   userId: string;
   wallet: Pick<WalletRow, "id" | "label" | "address" | "chain">;
   transactions: TransactionRow[];
+  forceTelegramDelivery?: boolean;
 }
 
 interface MatchedRule {
@@ -43,7 +44,9 @@ export async function evaluateAutomationRulesForTransactions(
 
   if (!matches.length) return 0;
 
-  return createNotificationsForMatches(supabase, input.userId, input.wallet, matches);
+  return createNotificationsForMatches(supabase, input.userId, input.wallet, matches, {
+    forceTelegramDelivery: input.forceTelegramDelivery,
+  });
 }
 
 async function getActiveRules(supabase: AppSupabaseClient, userId: string, walletId: string) {
@@ -100,6 +103,7 @@ async function createNotificationsForMatches(
   userId: string,
   wallet: Pick<WalletRow, "id" | "label" | "address" | "chain">,
   matches: MatchedRule[],
+  options: { forceTelegramDelivery?: boolean } = {},
 ) {
   const existing = await getExistingNotificationKeys(supabase, matches);
   const notifications = matches
@@ -136,6 +140,7 @@ async function createNotificationsForMatches(
       wallet,
       notifications.slice(0, insertedCount).map((item) => item.match),
       getDigestCreatedAt(data),
+      { forceTelegramDelivery: options.forceTelegramDelivery },
     );
   }
 
@@ -178,6 +183,7 @@ async function deliverTelegramAlerts(
   wallet: Pick<WalletRow, "label" | "address" | "chain">,
   matches: MatchedRule[],
   notificationCreatedAt: string,
+  options: { forceTelegramDelivery?: boolean } = {},
 ) {
   await sendTelegramAutomationDigest({
     wallet,
@@ -187,7 +193,7 @@ async function deliverTelegramAlerts(
       transaction: match.transaction,
       direction: match.direction,
     })),
-  });
+  }, { force: options.forceTelegramDelivery });
 }
 
 function getDigestCreatedAt(rows: Array<{ created_at: string }> | null) {

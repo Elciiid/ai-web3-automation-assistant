@@ -31,6 +31,7 @@ export type ScheduledMonitoringResult = {
 
 type ScheduledMonitoringOptions = {
   force?: boolean;
+  forceTelegramDelivery?: boolean;
   userId?: string;
 };
 
@@ -83,7 +84,9 @@ export async function runScheduledMonitoring(
         chain: wallet.chain,
       });
 
-      const enrichment = await enrichWallet(supabase, wallet.user_id, wallet.id);
+      const enrichment = await enrichWallet(supabase, wallet.user_id, wallet.id, {
+        forceTelegramDelivery: options.forceTelegramDelivery,
+      });
 
       results.push({
         walletId: wallet.id,

@@ -17,10 +17,15 @@ export interface WalletEnrichmentResult {
   message: string;
 }
 
+type WalletEnrichmentOptions = {
+  forceTelegramDelivery?: boolean;
+};
+
 export async function enrichWallet(
   supabase: AppSupabaseClient,
   userId: string,
   walletId: string,
+  options: WalletEnrichmentOptions = {},
 ): Promise<WalletEnrichmentResult> {
   const wallet = await getOwnedWallet(supabase, userId, walletId);
   logWalletRefresh({
@@ -60,6 +65,7 @@ export async function enrichWallet(
       userId,
       wallet,
       transactions: summarizedTransactions,
+      forceTelegramDelivery: options.forceTelegramDelivery,
     });
     const transferCount = snapshot.transfers.length;
     logWalletRefresh({

@@ -11,6 +11,10 @@ type TelegramDeliveryResult =
   | { delivered: true }
   | { delivered: false; reason: string };
 
+type TelegramDeliveryOptions = {
+  force?: boolean;
+};
+
 type TelegramSendResponse = {
   ok?: boolean;
   result?: {
@@ -26,12 +30,13 @@ const telegramApiBase = "https://api.telegram.org";
 
 export async function sendTelegramAutomationDigest(
   input: TelegramDigestInput,
+  options: TelegramDeliveryOptions = {},
 ): Promise<TelegramDeliveryResult> {
   if (!input.matches.length) {
     return { delivered: false, reason: "empty_digest" };
   }
 
-  if (!isTelegramEnabled()) {
+  if (!options.force && !isTelegramEnabled()) {
     logTelegram("skipped", input, "Telegram delivery is disabled");
     return { delivered: false, reason: "disabled" };
   }

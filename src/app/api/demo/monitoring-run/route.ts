@@ -15,13 +15,14 @@ export async function POST() {
   try {
     const result = await runScheduledMonitoring(createAdminClient(), {
       force: true,
+      forceTelegramDelivery: true,
       userId: user.id,
     });
 
     return ok({
       ...result,
       mode: "manual-demo",
-      telegramEnabled: process.env.ENABLE_TELEGRAM_NOTIFICATIONS === "true",
+      telegramEnabled: Boolean(process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_CHAT_ID),
     });
   } catch (error) {
     const message = getErrorMessage(error);

@@ -90,7 +90,7 @@ Update this file after every major Codex session.
 - Wallet risk and 24h change are still simplified placeholder values.
 - Gemini live parsing is connected, but supported intents remain intentionally limited to transfer thresholds, receive thresholds, token movement, and daily summaries.
 - Scheduled monitoring exists as a lightweight cron-compatible route, but it is intentionally disabled locally unless a controlled test/demo is running.
-- Telegram delivery is implemented for automation-triggered digests, but it is intentionally disabled locally unless a controlled test/demo is running.
+- Telegram delivery is implemented for automation-triggered digests. Scheduled/background delivery remains disabled locally unless a controlled test/demo is running; the protected Settings demo run can still force Telegram delivery when credentials are configured.
 - Gemini summaries are generated only for newly inserted transactions; existing rows keep their current summaries unless a backfill tool is added later.
 - The OpenAI API key remains configured but is no longer used as the primary runtime provider because that project returned `429 quota exceeded` during smoke testing.
 - Telegram delivery is currently channel-only; Slack, email, webhook delivery, retry queues, and delivery analytics are not implemented.
@@ -98,7 +98,7 @@ Update this file after every major Codex session.
 
 ## Next Recommended Step
 
-Add a small protected demo control for running one scheduled monitoring cycle from the app, with clear usage warnings and disabled-by-default behavior.
+Add a small status detail in Settings that distinguishes scheduled/background Telegram delivery from Settings-triggered demo Telegram delivery.
 
 ## Mocked vs Real
 
@@ -192,6 +192,7 @@ Add a small protected demo control for running one scheduled monitoring cycle fr
 - The Settings page now includes a restrained `Demo monitoring cycle` control with a `Run cycle` button, loading/error states, run summary metrics, Telegram enabled/disabled status, and per-wallet result previews.
 - After a successful in-app demo monitoring run, mounted wallet, transaction, notification, and automation data hooks now refetch automatically in the background without showing full-page loading states.
 - `src/lib/app-events.ts` centralizes the internal monitoring-completed browser event used to coordinate that automatic refetch behavior.
+- The protected Settings demo monitoring run now forces Telegram digest delivery when Telegram bot credentials are configured, even if scheduled/background Telegram delivery remains disabled.
 - Dashboard now includes a recruiter-demo onboarding/readiness panel explaining what the app does, what to try first, what becomes real after monitoring, and which systems are connected.
 - The demo readiness panel shows a concise checklist for Auth, wallet enrichment, Gemini AI, automation execution, in-app notifications, optional Telegram, and disabled-by-default scheduling.
 - Settings demo monitoring copy now clearly says the run uses Alchemy/Gemini quota, runs only the signed-in user's monitored wallets, and creates backend records after completion.
@@ -257,3 +258,5 @@ Add a small protected demo control for running one scheduled monitoring cycle fr
 - Supabase verification confirmed all 31 transactions inserted during the Gemini Flash Lite dry run had non-null `ai_summary` values.
 - Supabase verification confirmed all 31 notifications created during the Gemini Flash Lite dry run had wallet context attached.
 - After the Gemini Flash Lite dry run, `ENABLE_SCHEDULED_MONITORING=false`, `ENABLE_TELEGRAM_NOTIFICATIONS=false`, and the local production server was stopped.
+- `npm run lint` passed after the Settings demo Telegram delivery override.
+- `npm run build` passed after the Settings demo Telegram delivery override.
