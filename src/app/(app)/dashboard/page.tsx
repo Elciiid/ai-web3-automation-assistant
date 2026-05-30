@@ -123,11 +123,11 @@ export default function DashboardPage() {
             <Badge tone="green">{rules.filter((rule) => rule.status === "active").length} active</Badge>
           </div>
           {automationsError ? <InlineError message={automationsError} /> : null}
-          <div className="bounded-scroll soft-scrollbar grid gap-4 [--scroll-max:42rem]">
+          <div className="bounded-scroll soft-scrollbar grid gap-4 [--scroll-max:62rem]">
             {automationsLoading ? (
               <RuleSkeletons count={3} />
             ) : rules.length ? (
-              visibleRules.slice(0, 3).map((rule) => (
+              visibleRules.map((rule) => (
                 <AutomationRuleCard
                   key={rule.id}
                   rule={rule}
