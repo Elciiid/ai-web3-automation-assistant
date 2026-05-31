@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, BellRing, Bot, ShieldCheck, Sparkles, WalletCards } from "lucide-react";
+import { ArrowRight, BellRing, Bot, Send, ShieldCheck, Sparkles, WalletCards } from "lucide-react";
 import { AiCommandCard } from "@/components/ai-command-card";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -12,14 +12,14 @@ export default function LandingPage() {
     <main className="app-radial-bg min-h-screen overflow-hidden text-white">
       <div className="noise-overlay" />
       <div className="relative z-10">
-      <header className="mx-auto flex h-20 w-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+      <header className="relative mx-auto flex h-20 w-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <Link href="/" className="flex items-center gap-3">
           <div className="grid h-10 w-10 place-items-center rounded-lg bg-white text-black">
             <Sparkles className="h-5 w-5" />
           </div>
           <span className="text-sm font-semibold">AI Web3 Automation Assistant</span>
         </Link>
-        <nav className="hidden items-center gap-6 text-sm text-white/58 md:flex">
+        <nav className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-6 text-sm text-white/58 md:flex">
           <a href="#features" className="hover:text-white">Features</a>
           <a href="#workflow" className="hover:text-white">Workflow</a>
           <a href="#preview" className="hover:text-white">Preview</a>
@@ -48,7 +48,21 @@ export default function LandingPage() {
             <Button asChild variant="secondary" size="lg">
               <Link href="/builder">Try AI builder</Link>
             </Button>
+            <Button asChild variant="secondary" size="lg">
+              <a
+                href="https://t.me/unitflowalerts"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Join UnitFlow Alerts Telegram channel"
+              >
+                <Send className="h-4 w-4" />
+                Join UnitFlow Alerts
+              </a>
+            </Button>
           </div>
+          <p className="mx-auto mt-4 max-w-md text-sm leading-6 text-white/46">
+            Follow live automation alerts from my AI Web3 monitoring project.
+          </p>
         </div>
 
         <div id="workflow" className="mx-auto mt-12 max-w-5xl">
@@ -145,7 +159,19 @@ export default function LandingPage() {
       </section>
 
       <footer className="border-t border-white/10 px-4 py-10 text-center text-sm text-white/42">
-        Built for premium Web3 operations demos.
+        <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
+          <span>Built for premium Web3 operations demos.</span>
+          <a
+            href="https://t.me/unitflowalerts"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 rounded-full border border-white/12 px-3 py-1.5 text-white/68 transition hover:border-white/22 hover:bg-white/[0.04] hover:text-white"
+            aria-label="View UnitFlow Alerts Telegram channel"
+          >
+            <Send className="h-3.5 w-3.5" />
+            View Telegram Alerts
+          </a>
+        </div>
       </footer>
       </div>
     </main>

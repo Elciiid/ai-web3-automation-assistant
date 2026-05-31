@@ -9,6 +9,7 @@ import {
   Gauge,
   Menu,
   Search,
+  Send,
   Settings,
   Sparkles,
   Table2,
@@ -109,6 +110,23 @@ function Sidebar({ className, onNavigate }: { className?: string; onNavigate?: (
         })}
       </nav>
       <div className="workspace-status-line mt-auto px-1.5 pt-5">
+        <a
+          href="https://t.me/unitflowalerts"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Join UnitFlow Alerts Telegram channel"
+          className="mb-4 flex items-start gap-3 rounded-xl border border-fuchsia-200/14 bg-fuchsia-200/[0.045] px-3 py-3 text-left transition hover:border-fuchsia-100/24 hover:bg-fuchsia-200/[0.07]"
+        >
+          <span className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-full border border-white/10 bg-white/[0.06] text-fuchsia-100">
+            <Send className="h-3.5 w-3.5" />
+          </span>
+          <span>
+            <span className="block text-xs font-semibold text-white/82">Join UnitFlow Alerts</span>
+            <span className="mt-1 block text-[11px] leading-4 text-white/42">
+              Receive live blockchain automation alerts.
+            </span>
+          </span>
+        </a>
         <div className="flex items-center gap-2 text-xs font-medium">
           <span className="h-1.5 w-1.5 rounded-full bg-emerald-300/80" />
           AI monitoring active

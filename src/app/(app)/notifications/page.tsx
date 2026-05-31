@@ -1,6 +1,6 @@
 "use client";
 
-import { BellRing, CheckCircle2, Radio, TriangleAlert, X } from "lucide-react";
+import { BellRing, CheckCircle2, Radio, Send, TriangleAlert, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -38,6 +38,19 @@ export default function NotificationsPage() {
         eyebrow="Notifications"
         title="Triggered alerts and activity feed"
         description="Review alert severity, source rules, and the on-chain events that caused them."
+        action={(
+          <Button asChild variant="secondary">
+            <a
+              href="https://t.me/unitflowalerts"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="View UnitFlow Alerts Telegram channel"
+            >
+              <Send className="h-4 w-4" />
+              Live Alerts Channel
+            </a>
+          </Button>
+        )}
       />
       <div className="bento-grid items-stretch lg:grid-cols-[0.95fr_1.05fr]">
         <Card className="bento-panel flex h-full min-h-0 flex-col">
